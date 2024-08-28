@@ -93,6 +93,7 @@ suppressWarnings(
     library(ggridges)
     library(ggrepel)
     library(dplyr)
+    library(purrr)
     library(tidyverse)
     library(data.table)
     library(reticulate)
@@ -168,13 +169,205 @@ packageVersion("EnrichmentBrowser")
 packageVersion("org.Hs.eg.db")
 packageVersion("DESeq2")
 
-############################ STAGE ############################
-############################   12   ############################
+############################ STAGE  ############################
+############################  12a   ############################
+#Load dataset
+#processed_rna <- qread(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\RDS files\current\3_seuratobj\processed_rna.qs)")
+processed_rna <- qread(r"(E:\2.SexbasedStudyCurrent\QS files\processed_rna.qs)")
+#saveRDS(processed_rna, file = r"(E:\2.SexbasedStudyCurrent\RDS files\processed_rna.rds)")
+
+# Organise metadata
+# Add metadata
+Idents(processed_rna) <- "ancestry"
+processed_rna$ancestry_sex <- paste(Idents(processed_rna), processed_rna$'Sex', sep = "_")
+table(processed_rna$ancestry_sex)
+
+Idents(processed_rna) <- "celltype_sex_ancestry_disease"
+processed_rna$celltype_sex_ancestry_disease_lib <- paste(Idents(processed_rna), processed_rna$'Library', sep = "_")
+table(processed_rna$celltype_sex_ancestry_disease_lib)
+
+Idents(processed_rna) <- "celltype_sex_ancestry_disease_lib"
+processed_rna$celltype_sex_ancestry_disease_lib_source <- paste(Idents(processed_rna), processed_rna$'tissue_source', sep = "_")
+table(processed_rna$celltype_sex_ancestry_disease_lib_source)
+
+Idents(processed_rna) <- "diabetes_status"
+processed_rna$disease_ancestry_lib_sex <- paste(Idents(processed_rna), processed_rna$'ancestry', processed_rna$'Library', processed_rna$'Sex', sep = "_")
+table(processed_rna$disease_ancestry_lib_sex)
+
+Idents(processed_rna) <- "diabetes_status"
+processed_rna$disease_ancestry_lib_sex_source <- paste(Idents(processed_rna), processed_rna$'ancestry', processed_rna$'Library', processed_rna$'Sex', processed_rna$'tissue_source', sep = "_")
+table(processed_rna$disease_ancestry_lib_sex_source)
+
+Idents(processed_rna) <- "diabetes_status"
+processed_rna$disease_ancestry_lib_sex_source_celltype <- paste(Idents(processed_rna), processed_rna$'ancestry', processed_rna$'Library', processed_rna$'Sex', processed_rna$'tissue_source', processed_rna$'celltype_qadir', sep = "_")
+table(processed_rna$disease_ancestry_lib_sex_source_celltype)
+
+# cluster re-assignment occurs, which re-assigns clustering in my_levels
+my_levels <- c("ND_black_HP2031401_M", "ND_black_HP2110001_M", "ND_black_HP2123201_M", "ND_black_HPAP-052_M", "ND_black_HPAP-080_M", #Black M ND
+               "ND_black_HP2106201_F", "ND_black_HP2121601_F", "ND_black_HP2132801_F", "ND_black_HP2202101_F", #Black F ND
+               
+               #Hispanic M ND
+               "ND_hispanic_HPAP-099_F", "ND_hispanic_HPAP-101_F", "ND_hispanic_HPAP-105_F", #Hispanic F ND
+               
+               "ND_white_HP2107001_M", "ND_white_HP2107901_M", "ND_white_HPAP-026_M", "ND_white_HPAP-035_M", "ND_white_HPAP-040_M", "ND_white_HPAP-056_M", "ND_white_HPAP-059_M", "ND_white_HPAP-075_M", "ND_white_HPAP-077_M", "ND_white_HPAP-082_M", "ND_white_SAMN15877725_M", #White M ND
+               "ND_white_HP2022801_F", "ND_white_HP2024001_F", "ND_white_HP2105501_F", "ND_white_HP2108601_F", "ND_white_HP2108901_F", "ND_white_HPAP-022_F", "ND_white_HPAP-036_F", "ND_white_HPAP-037_F", "ND_white_HPAP-053_F", "ND_white_HPAP-054_F",  "ND_white_HPAP-063_F", "ND_white_HPAP-074_F", "ND_white_HPAP-103_F", #White F ND  
+               
+               "T2D_black_HPAP-065_M", "T2D_black_HPAP-070_M", "T2D_black_HPAP-083_M", "T2D_black_HPAP-108_M", #Black M T2D  
+               "T2D_black_HPAP-051_F", "T2D_black_HPAP-058_F", "T2D_black_HPAP-061_F", #Black F T2D
+               
+               "T2D_hispanic_HPAP-079_F", "T2D_hispanic_HPAP-091_F", "T2D_hispanic_HPAP-109_F", #Hispanic F T2D) #Hispanic F T2D
+               
+               "T2D_white_HPAP-088_M", "T2D_white_HPAP-100_M", "T2D_white_HPAP-106_M",# White M T2D
+               "T2D_white_HPAP-057_F", "T2D_white_HPAP-081_F", "T2D_white_HPAP-085_F") # White F T2D
+
+#Check
+table(processed_rna$disease_ancestry_lib_sex)
+summary(is.na(table(processed_rna$disease_ancestry_lib_sex)))
+is.na(table(processed_rna$disease_ancestry_lib_sex))
+
+# Re-level object@meta.data this just orders the actual metadata slot, so when you pull its already ordered
+processed_rna$disease_ancestry_lib_sex <- factor(x = processed_rna$disease_ancestry_lib_sex, levels = my_levels)
+table(unique((processed_rna$disease_ancestry_lib_sex)))
+
+# cluster re-assignment occurs, which re-assigns clustering in my_levels
+my_levels <- c("ND_black_HP2031401_M_Tulane", "ND_black_HP2110001_M_Tulane", "ND_black_HP2123201_M_Tulane", "ND_black_HPAP-052_M_UPENN", "ND_black_HPAP-080_M_nPOD", #Black M ND
+               "ND_black_HP2106201_F_Tulane", "ND_black_HP2121601_F_Tulane", "ND_black_HP2132801_F_Tulane", "ND_black_HP2202101_F_Tulane", #Black F ND
+               
+               #Hispanic M ND
+               "ND_hispanic_HPAP-099_F_UPENN", "ND_hispanic_HPAP-101_F_nPOD", "ND_hispanic_HPAP-105_F_nPOD", #Hispanic F ND
+               
+               "ND_white_HP2107001_M_Tulane", "ND_white_HP2107901_M_Tulane", "ND_white_HPAP-026_M_nPOD", "ND_white_HPAP-035_M_UPENN", "ND_white_HPAP-040_M_UPENN", "ND_white_HPAP-056_M_UPENN", "ND_white_HPAP-059_M_UPENN", "ND_white_HPAP-075_M_UPENN", "ND_white_HPAP-077_M_UPENN", "ND_white_HPAP-082_M_nPOD", "ND_white_SAMN15877725_M_Tulane", #White M ND
+               "ND_white_HP2022801_F_Tulane", "ND_white_HP2024001_F_Tulane", "ND_white_HP2105501_F_Tulane", "ND_white_HP2108601_F_Tulane", "ND_white_HP2108901_F_Tulane", "ND_white_HPAP-022_F_UPENN", "ND_white_HPAP-036_F_nPOD", "ND_white_HPAP-037_F_UPENN", "ND_white_HPAP-053_F_UPENN", "ND_white_HPAP-054_F_UPENN", "ND_white_HPAP-063_F_nPOD",  "ND_white_HPAP-074_F_UPENN", "ND_white_HPAP-103_F_UPENN", #White F ND  
+               
+               "T2D_black_HPAP-065_M_nPOD", "T2D_black_HPAP-070_M_UPENN", "T2D_black_HPAP-083_M_UPENN", "T2D_black_HPAP-108_M_nPOD", #Black M T2D  
+               "T2D_black_HPAP-051_F_UPENN", "T2D_black_HPAP-058_F_nPOD", "T2D_black_HPAP-061_F_nPOD", #Black F T2D
+               
+               "T2D_hispanic_HPAP-079_F_nPOD", "T2D_hispanic_HPAP-091_F_nPOD", "T2D_hispanic_HPAP-109_F_nPOD", #Hispanic F T2D) #Hispanic F T2D
+               
+               "T2D_white_HPAP-088_M_nPOD", "T2D_white_HPAP-100_M_nPOD", "T2D_white_HPAP-106_M_UPENN",# White M T2D
+               "T2D_white_HPAP-057_F_UPENN", "T2D_white_HPAP-081_F_nPOD", "T2D_white_HPAP-085_F_UPENN") # White F T2D
+
+table(processed_rna$disease_ancestry_lib_sex_source)
+
+# Re-level object@meta.data this just orders the actual metadata slot, so when you pull its already ordered
+processed_rna$disease_ancestry_lib_sex_source <- factor(x = processed_rna$disease_ancestry_lib_sex_source, levels = my_levels)
+table(unique(processed_rna$disease_ancestry_lib_sex_source))
+
+# Make aggregated pseudobulk for conserved marker analysis
+# Make average seurat object
+Idents(processed_rna) <- "disease_ancestry_lib_sex_source_celltype"
+combined_processed_rna <- AggregateExpression(processed_rna, return.seurat = TRUE, slot = 'counts')
+
+# Split Metadata and add columns
+{
+  combined_processed_rna$disease_ancestry_lib_sex_source_celltype <- combined_processed_rna@active.ident
+  Idents(combined_processed_rna) <- 'disease_ancestry_lib_sex_source_celltype'
+  combined_processed_rna$disease <- combined_processed_rna$orig.ident
+  metadat <- combined_processed_rna@meta.data
+  metadat <- metadat %>% 
+    mutate(disease_ancestry_lib_sex_source_celltype = str_replace(disease_ancestry_lib_sex_source_celltype, "activated_stellate", "activated-stellate"))
+  metadat <- metadat %>% 
+    mutate(disease_ancestry_lib_sex_source_celltype = str_replace(disease_ancestry_lib_sex_source_celltype, "quiescent_stellate", "quiescent-stellate"))
+  metadat <- metadat %>% 
+    mutate(disease_ancestry_lib_sex_source_celltype = str_replace(disease_ancestry_lib_sex_source_celltype, "cycling_endo", "cycling-endo"))
+  metadat$ancestry <- metadat[c('ancestry')] <- str_split_i(metadat$disease_ancestry_lib_sex_source_celltype, "_", -5)
+  metadat$lib <- metadat[c('lib')] <- str_split_i(metadat$disease_ancestry_lib_sex_source_celltype, '_', -4)
+  metadat$sex <- metadat[c('sex')] <- str_split_i(metadat$disease_ancestry_lib_sex_source_celltype, '_', -3)
+  metadat$source <- metadat[c('source')] <- str_split_i(metadat$disease_ancestry_lib_sex_source_celltype, '_', -2)
+  metadat$celltype <- metadat[c('celltype')] <- str_split_i(metadat$disease_ancestry_lib_sex_source_celltype, '_', -1)
+  combined_processed_rna@meta.data = metadat
+}
+
+# Split dataset into M and F
+Idents(combined_processed_rna) <- "disease"
+combined_processed_rna <- subset(combined_processed_rna, idents = c("ND"))
+
+Idents(combined_processed_rna) <- "sex"
+combined_processed_rna_M <- subset(combined_processed_rna, idents = c("M"))
+combined_processed_rna_F <- subset(combined_processed_rna, idents = c("F"))
+
+# Analysis for male
+Idents(combined_processed_rna_M) <- "celltype"
+Idents(combined_processed_rna_F) <- "celltype"
+
+celltypes <- c("beta", "alpha", "beta+alpha", "beta+delta", "gamma", "delta", "epsilon", "cycling-endo", "ductal", "acinar", 
+               "quiescent-stellate", "activated-stellate", "endothelial", "macrophages", "mast", "lymphocyte", "schwann")
+
+ident.2 <- c("acinar", "quiescent-stellate", "ductal", "alpha", "endothelial", "gamma", "delta",
+             "activated-stellate", "macrophages", "mast", "lymphocyte", "cycling-endo", "epsilon","schwann")
+
+# Now for males
+markers_list <- list()
+markers_list <- map(celltypes, function(celltype) {
+  FindMarkers(combined_processed_rna_M, assay = "RNA", slot = "data", 
+              ident.1 = celltype, ident.2 = setdiff(ident.2, celltype), 
+              group.by = "celltype", test.use = "DESeq2", 
+              only.pos = FALSE) %>% 
+    filter(p_val_adj < 5e-2 & avg_log2FC >= 1) %>% 
+    arrange(desc(avg_log2FC))
+})
+names(markers_list) <- celltypes
+
+# Define the directory path where you want to save the files
+save_dir <- "C:\\Users\\mqadir\\Box\\Lab 2301\\1. R_Coding Scripts\\Sex Biology Study\\Data Output\\scRNA\\Conserved markers\\DEtesting\\0.by_sex\\male"
+
+# Create the directory if it doesn't exist
+if (!dir.exists(save_dir)) {
+  dir.create(save_dir)
+}
+
+# Iterate over the list of markers_list
+for (i in seq_along(markers_list)) {
+  # Get the current cell type
+  celltype <- names(markers_list)[i]
+  
+  # Construct the file path
+  file_path <- file.path(save_dir, paste0(celltype, ".csv"))
+  
+  # Save the data frame to a CSV file
+  write.csv(markers_list[[i]], file_path, row.names = TRUE)
+  
+  print(paste0("Saved file ", celltype, ".csv to ", save_dir))
+}
+
+# Now for females
+markers_list <- list()
+markers_list <- map(celltypes, function(celltype) {
+  FindMarkers(combined_processed_rna_F, assay = "RNA", slot = "data", 
+              ident.1 = celltype, ident.2 = setdiff(ident.2, celltype), 
+              group.by = "celltype", test.use = "DESeq2", 
+              only.pos = FALSE) %>% 
+    filter(p_val_adj < 5e-2 & avg_log2FC >= 1) %>% 
+    arrange(desc(avg_log2FC))
+})
+names(markers_list) <- celltypes
+
+# Define the directory path where you want to save the files
+save_dir <- "C:\\Users\\mqadir\\Box\\Lab 2301\\1. R_Coding Scripts\\Sex Biology Study\\Data Output\\scRNA\\Conserved markers\\DEtesting\\0.by_sex\\female"
+
+# Create the directory if it doesn't exist
+if (!dir.exists(save_dir)) {
+  dir.create(save_dir)
+}
+
+# Iterate over the list of markers_list
+for (i in seq_along(markers_list)) {
+  # Get the current cell type
+  celltype <- names(markers_list)[i]
+  
+  # Construct the file path
+  file_path <- file.path(save_dir, paste0(celltype, ".csv"))
+  
+  # Save the data frame to a CSV file
+  write.csv(markers_list[[i]], file_path, row.names = TRUE)
+  
+  print(paste0("Saved file ", celltype, ".csv to ", save_dir))
+}
+
+############################ STAGE  ############################
+############################  12b   ############################
 # plotting first load seurat object
 # First Plot cell Based clustering
-processed_rna <- qread(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\RDS files\current\3_seuratobj\processed_rna.qs)")
-processed_rna <- qread(r"(E:\2.SexbasedStudyCurrent\QS files\processed_rna.qs)")
-
 # Add metadata
 Idents(processed_rna) <- "ancestry"
 processed_rna$ancestry_sex <- paste(Idents(processed_rna), processed_rna$'Sex', sep = "_")
@@ -306,8 +499,9 @@ sunburst(
 
 
 DimPlot(processed_rna, #switch here to plot
+        reduction = "umap",
         #split.by = "Diabetes Status", 
-        group.by = "celltype_qadir", 
+        group.by = "Sex", 
         label = FALSE, 
         ncol = 1, 
         raster = FALSE,
@@ -715,8 +909,8 @@ plots <- VlnPlot(beta.cells, features = c("MT-CO3", "MT-ND1", "MT-ND4", "MT-ATP6
 wrap_plots(plots = plots, nrow = 1, ncol = 1)
 
 # Load data BE CAREFUL WHAT YOU CALL
-volcanodat <- read.table(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\Data Output\scRNA\DETesting\DE_testing\alldata\alpha.deseq.WaldTest.M_T2D.vs.F_T2D.tsv)",
-                         header = TRUE, sep = '\t', row.names = 1)
+volcanodat <- read.table(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\Data Output\scRNA\DETesting\DE_testing\alldata\alpha.deseq.WaldTest.M_ND.vs.F_ND_auto.csv)",
+                         header = TRUE, sep = ',', row.names = 1) #check seperator
 # volcanodat <- volcanodat %>% 
 #   mutate_at(c('pvalue'), ~replace_na(.,0.0000000000000001))
 #read.table(file.path(x), sep = '\t', row.names = 1) 
@@ -734,12 +928,12 @@ keyvals <- rep('black', nrow(volcanodat))
 names(keyvals) <- rep('Mid', nrow(volcanodat))
 
 # modify keyvals for variables with fold change > 1 note for T2D padj < 0.01 #keyvals[which(volcanodat$log2FoldChange > 1 & volcanodat$padj < 0.01)]
-keyvals[which(volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.01)] <- 'red'
-names(keyvals)[which(volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.01)] <- 'high'
+keyvals[which(volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.1)] <- 'royalblue'
+names(keyvals)[which(volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.1)] <- 'high'
   
 # modify keyvals for variables with fold change < -1
-keyvals[which(volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.01)] <- 'royalblue'
-names(keyvals)[which(volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.01)] <- 'low'
+keyvals[which(volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.1)] <- 'red'
+names(keyvals)[which(volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.1)] <- 'low'
     
 unique(names(keyvals))
     
@@ -754,32 +948,32 @@ EnhancedVolcano(volcanodat,
                 #selectLab = rownames(volcanodat)[which(names(keyvals) %in% c('high', 'low'))],
                 #selectLab = c('ATF4', 'DNAJB14', 'EDEM1', 'CREBRF', 'HSPA5', 'AMFR', 'DNAJB14', 'UGCG', 'LDLR',
                 #              'COX5A', 'COX6A1', 'NDUFS8', 'NDUFS6', 'NDUFA8', 'NDUFB5', 'NDUFB2', 'CCT5', 'CCT7', 'PTGES3', 'WDR83OS'), # use this for labelling genes on plot
-                #selectLab = c('DDX3X', 'KDM6A', 'MAPT', 'BARHL1', 'MAPT-IT1', 'SH3BP5', 'AL672277.1', 'JPX', 'XIST', 'TSIX',
+                # selectLab = c('DDX3X', 'KDM6A', 'MAPT', 'BARHL1', 'MAPT-IT1', 'SH3BP5', 'AL672277.1', 'JPX', 'XIST', 'TSIX',
                 #              'RPS4Y1', 'EIF1AY', 'USP9Y', 'DDX3Y', 'TTTY14', 'KDM5D', 'UTY', 'ZFY', 'AC244213.1', 'NLGN4Y', 'TMSB4Y', 'AC006157.1',
-                #              'SRY', 'LINC00278', 'TTTY10', 'AC010889.2', 'AC010889.1', 'AC011297.1', 'HAR1B', 'CD99', 'BCHE', 'ODF3L1', 'EFEMP2', 
+                #              'SRY', 'LINC00278', 'TTTY10', 'AC010889.2', 'AC010889.1', 'AC011297.1', 'HAR1B', 'CD99', 'BCHE', 'ODF3L1', 'EFEMP2',
                 #              'DENND1B', 'SOCS6', 'TWSG1', 'ADGRG7'), # use this for labelling genes on plot
-                # selectLab = c('DDX3X', 'KIAA0408', 'KDM6A', 'RORB', 'ACCS', 'ADAT1', 'ARSD', 'TMEM196',
-                #               'L672277.1', 'KDM5C', 'ENPEP', 'JPX', 'FXYD2', 'RBMS3', 'NFIB', 'VWA2', 'XIST', 'TSIX',
-                #               'RPS4Y1', 'EIF1AY', 'USP9Y', 'TTTY14', 'DDX3Y', 'KDM5D', 'ZFY', 'UTY', 'NLGN4Y', 'AC011297.1', 
-                #               'SRY', 'AC244213.1', 'TMSB4Y', 'AC006157.1', 'PRKY', 'FAM162B', 'SDC3', 'C9orf24', 'CXCL12', 
-                #               'TSPAN8', 'TGFBR3L', 'CCDC141', 'FAM3C', 'TTTY10', 'LINC00278', 'AC010889.1', 
-                #               'TBL1Y', 'AC010889.2', 'RAB38', 'PTPRD-AS1', 'SPESP1', 'C5orf58', 'PAIP1', 'NAE1', 'NAT8L'), # use this for labelling genes on plot
+                selectLab = c('DDX3X', 'KIAA0408', 'KDM6A', 'RORB', 'ACCS', 'ADAT1', 'ARSD', 'TMEM196',
+                              'L672277.1', 'KDM5C', 'ENPEP', 'JPX', 'FXYD2', 'RBMS3', 'NFIB', 'VWA2', 'XIST', 'TSIX',
+                              'RPS4Y1', 'EIF1AY', 'USP9Y', 'TTTY14', 'DDX3Y', 'KDM5D', 'ZFY', 'UTY', 'NLGN4Y', 'AC011297.1',
+                              'SRY', 'AC244213.1', 'TMSB4Y', 'AC006157.1', 'PRKY', 'FAM162B', 'SDC3', 'C9orf24', 'CXCL12',
+                              'TSPAN8', 'TGFBR3L', 'CCDC141', 'FAM3C', 'TTTY10', 'LINC00278', 'AC010889.1',
+                              'TBL1Y', 'AC010889.2', 'RAB38', 'PTPRD-AS1', 'SPESP1', 'C5orf58', 'PAIP1', 'NAE1', 'NAT8L'), # use this for labelling genes on plot
                 # selectLab = c('RPS4Y1', 'EIF1AY', 'XIST', 'USP9Y', 'DDX3Y', 'UTY', 'ZFY', 'KDM5D',
                 #               'TTTY14', 'AC244213.1', 'TMSB4Y', 'NLGN4Y', 'AC006157.1', 'TSIX',
                 #               'SRY', 'AC010889.2', 'LINC00278', 'TTTY10', 'CD99', 'BMP2',
                 #               'XDH', 'TNFRSF6B', 'WDR25', 'PCDH9', 'LDHA', 'AC010889.1', 'OAT', 'NANOS3',
                 #               'AMY2B', 'TUSC3', 'PSENEN'), # use this for labelling genes on plot
-                selectLab = intersect(c(unique.x.chrom.genes, unique.y.chrom.genes), degenes_t2d), # use this for labelling genes on plot
-                #selectLab = c('GSTA1', 'SPTSSB', 'GGA1', 'DDIT4', 'CXCL2', 'TNFAIP2', 'CXCL3'), # use this for labelling genes on plot
+                #selectLab = intersect(c(unique.x.chrom.genes, unique.y.chrom.genes), degenes_t2d), # use this for labelling genes on plot
+                #selectLab = c('GSTA1', 'SEPTIN6', 'CTAG2', 'SPTSSB', 'LRATD1', 'GGA1', 'DDIT4', 'CXCL2', 'TNFAIP2', 'CXCL3'), # use this for labelling genes on plot
                 #encircle = c('VAMP3'),
                 boxedLabels = FALSE,
                 #xlim = c(-25,25),
-                #ylim = c(0,30),
+                ylim = c(0,6),
                 xlab = bquote(~Log[2]~ 'fold change'),
                 title = 'Custom colour over-ride',
-                pCutoff = 0.01,
+                pCutoff = 0.1,
                 FCcutoff = c(0, 0), 
-                pointSize = c(ifelse((volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.01) | (volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.01), 3, 2)), #changed from T2D 0.01
+                pointSize = c(ifelse((volcanodat$log2FoldChange > 0 & volcanodat$padj < 0.1) | (volcanodat$log2FoldChange < 0 & volcanodat$padj < 0.1), 3, 2)), #changed from T2D 0.01
                 #pointSize = 2,
                 labSize = 2,
                 labFace = 'bold',
@@ -918,21 +1112,21 @@ F_white_ND.vs.F_hispanic_ND_delta <- read.table(r"(C:\Users\mqadir\Box\Lab 2301\
 M_white_ND.vs.M_black_ND_delta <- read.table(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\Data Output\scRNA\DETesting\DE_testing\alldata\delta.deseq.WaldTest.M_white_ND.vs.M_black_ND.tsv)", sep = '\t', row.names = 1)
 F_black_ND.vs.F_hispanic_ND_delta <- read.table(r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\Data Output\scRNA\DETesting\DE_testing\alldata\delta.deseq.WaldTest.F_black_ND.vs.F_hispanic_ND.tsv)", sep = '\t', row.names = 1)
 # Extract gene lists UP
-mvsf_delta <- rownames(dplyr::filter(M_ND.vs.F_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-mbvsfb_delta <- rownames(dplyr::filter(M_black_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-mwvsfw_delta <- rownames(dplyr::filter(M_white_ND.vs.F_white_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-fwvsfb_delta <- rownames(dplyr::filter(F_white_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-fwvsfh_delta <- rownames(dplyr::filter(F_white_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-mwvsmb_delta <- rownames(dplyr::filter(M_white_ND.vs.M_black_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
-fbvsfh_delta <- rownames(dplyr::filter(F_black_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange > 0.000000000014))
+mvsf_delta <- rownames(dplyr::filter(M_ND.vs.F_ND_delta, padj < 0.1 & log2FoldChange > 0))
+mbvsfb_delta <- rownames(dplyr::filter(M_black_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange > 0))
+mwvsfw_delta <- rownames(dplyr::filter(M_white_ND.vs.F_white_ND_delta, padj < 0.1 & log2FoldChange > 0))
+fwvsfb_delta <- rownames(dplyr::filter(F_white_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange > 0))
+fwvsfh_delta <- rownames(dplyr::filter(F_white_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange > 0))
+mwvsmb_delta <- rownames(dplyr::filter(M_white_ND.vs.M_black_ND_delta, padj < 0.1 & log2FoldChange > 0))
+fbvsfh_delta <- rownames(dplyr::filter(F_black_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange > 0))
 # Extract gene lists DOWN
-fvsm_delta <- rownames(dplyr::filter(M_ND.vs.F_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-fbvsmb_delta <- rownames(dplyr::filter(M_black_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-fwvsmw_delta <- rownames(dplyr::filter(M_white_ND.vs.F_white_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-fbvsfw_delta <- rownames(dplyr::filter(F_white_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-fhvsfw_delta <- rownames(dplyr::filter(F_white_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-mbvsmw_delta <- rownames(dplyr::filter(M_white_ND.vs.M_black_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
-fhvsfb_delta <- rownames(dplyr::filter(F_black_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange < -0.000000000014))
+fvsm_delta <- rownames(dplyr::filter(M_ND.vs.F_ND_delta, padj < 0.1 & log2FoldChange < 0))
+fbvsmb_delta <- rownames(dplyr::filter(M_black_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange < 0))
+fwvsmw_delta <- rownames(dplyr::filter(M_white_ND.vs.F_white_ND_delta, padj < 0.1 & log2FoldChange < 0))
+fbvsfw_delta <- rownames(dplyr::filter(F_white_ND.vs.F_black_ND_delta, padj < 0.1 & log2FoldChange < 0))
+fhvsfw_delta <- rownames(dplyr::filter(F_white_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange < 0))
+mbvsmw_delta <- rownames(dplyr::filter(M_white_ND.vs.M_black_ND_delta, padj < 0.1 & log2FoldChange < 0))
+fhvsfb_delta <- rownames(dplyr::filter(F_black_ND.vs.F_hispanic_ND_delta, padj < 0.1 & log2FoldChange < 0))
 
 
 # Gamma
@@ -2793,7 +2987,7 @@ DimPlot(testing_rna, reduction = "umap")
 #Create pseudobulk matrix from ALL CELL TYPES
 # Make average seurat object
 Idents(processed_rna) <- "disease_ancestry_lib_sex_source_celltype"
-combined_processed_rna <- AverageExpression(processed_rna, return.seurat = TRUE, slot = 'data')
+combined_processed_rna <- AverageExpression(processed_rna, return.seurat = TRUE, slot = 'counts')
 
 # Split Metadata and add columns, this is because the pseudobulk seurat obj loses metadata
 {
