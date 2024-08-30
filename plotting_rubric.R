@@ -303,7 +303,7 @@ markers_list <- map(celltypes, function(celltype) {
               ident.1 = celltype, ident.2 = setdiff(ident.2, celltype), 
               group.by = "celltype", test.use = "DESeq2", 
               only.pos = FALSE) %>% 
-    filter(p_val_adj < 5e-2 & avg_log2FC >= 1) %>% 
+    filter(p_val_adj < 1e-2 & avg_log2FC >= 1) %>% 
     arrange(desc(avg_log2FC))
 })
 names(markers_list) <- celltypes
@@ -337,7 +337,7 @@ markers_list <- map(celltypes, function(celltype) {
               ident.1 = celltype, ident.2 = setdiff(ident.2, celltype), 
               group.by = "celltype", test.use = "DESeq2", 
               only.pos = FALSE) %>% 
-    filter(p_val_adj < 5e-2 & avg_log2FC >= 1) %>% 
+    filter(p_val_adj < 1e-2 & avg_log2FC >= 1) %>% 
     arrange(desc(avg_log2FC))
 })
 names(markers_list) <- celltypes
@@ -363,6 +363,278 @@ for (i in seq_along(markers_list)) {
   
   print(paste0("Saved file ", celltype, ".csv to ", save_dir))
 }
+
+# Make a side by side dotplot
+# Advanced coding for ggplot2
+# Select only ND samples clear your GE
+processed_rna <- qread(r"(E:\2.SexbasedStudyCurrent\QS files\processed_rna.qs)")
+Idents(processed_rna) <- "diabetes_status"
+processed_rna_ND <- subset(processed_rna, idents = c("ND"))
+
+# Create a new metadata slot containing combined info, segregating clusters and samples
+Idents(object = processed_rna_ND) <- "celltype_sex"
+names(table(processed_rna_ND@meta.data$celltype_sex))
+
+# New metadata column is not paired, so we need to pair
+my_levels2 <- c("delta_F", "delta_M", "beta+delta_F", "beta+delta_M", "beta_F", "beta_M",  "beta+alpha_F", "beta+alpha_M", "alpha_F", "alpha_M",  "gamma_F", "gamma_M", "epsilon_F", "epsilon_M", "cycling_endo_F", "cycling_endo_M",
+                "ductal_F", "ductal_M", "acinar_F", "acinar_M", "activated_stellate_F", "activated_stellate_M", 
+                "quiescent_stellate_F", "quiescent_stellate_M", 
+                "endothelial_F", "endothelial_M", "lymphocyte_F", "lymphocyte_M", "macrophages_F", "macrophages_M", "mast_F", "mast_M", "schwann_F", "schwann_M") 
+
+head(processed_rna_ND@meta.data$celltype_sex)
+
+# Re-level object@meta.data this just orders the actual metadata slot, so when you pull its already ordered
+processed_rna_ND@meta.data$celltype_sex <- factor(x = processed_rna_ND@meta.data$celltype_sex, levels = my_levels2)
+table(processed_rna_ND@meta.data$celltype_sex)
+
+# Re select organized idents
+Idents(processed_rna_ND) <- "celltype_sex"
+Idents(processed_rna_ND) <- "celltype"
+DefaultAssay(object = processed_rna_ND) <- "RNA"
+
+markers.to.plot <- c("SST", "LEPR", "LY6H", "BCHE", "INS", "MAFA", "PDX1", "GLP1R", "ONECUT3", "TMPRSS11B", "GCG", "TM4SF4", "ARX", "TTR", 
+                     "PPY", "CARTPT", "GHRL", "ANXA13", "UBE2C", "TOP2A", "MKI67", "CCNB2", "CFTR", "MMP7", "KRT23", "TFF1", "CPA1", "PNLIP", "CELA2A", "AMY2A",
+                     "SFRP2", "PTGDS", "LUM", "PDGFRA", "RGS5", "FABP4", "CSRP2", "ESM1", "SOX18", "PECAM1", "VWF",
+                     "CD3D", "CD2", "TRAC", "CD7", "C1QA", "SDS", "TYROBP", "FCER1G", "TPSB2", "TPSAB1", "HPGDS", "CDH19", "SOX10", "NGFR", "GDNF")
+
+DotPlot(processed_rna_ND,  
+        dot.scale = 8,
+        scale = TRUE,
+        col.min = -2, #minimum level
+        col.max = 3,  #maximum level
+        features = rev(markers.to.plot)) + 
+  geom_point(aes(size=pct.exp), shape = 21, stroke=0.5) +
+  theme_light() +
+  #facet_wrap(~??? what metadata should be here??)
+  #coord_flip() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.3, hjust=1, size =12, face = "bold", colour = "black")) +
+  theme(axis.text.y = element_text(angle = 0, vjust = 0.3, hjust=1, size =12, face = "bold", colour = "black")) +
+  theme(plot.title = element_text(size = 10, face = "bold"),
+        legend.title=element_text(size=12, face = "bold"), 
+        legend.text=element_text(size=12, face = "bold")) +
+  scale_colour_gradient2(low =c("dodgerblue"), mid =c("white"), high =c("red")) +
+  guides(color = guide_colorbar(title = 'Average Expression'))
+
+# Older dotplot configuration, shows only percentage not expression
+Idents(pancreas.integrated) <- "celltype"
+DotPlot(pancreas.integrated, features = rev(markers.to.plot), 
+        cols = c("blue", "red"), 
+        dot.scale = 8, 
+        split.by = "treatment") + 
+  RotatedAxis() +
+  geom_point(aes(size=pct.exp), shape = 21, colour="black", stroke=0.5) +
+  theme_light() + 
+  #coord_flip() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.3, hjust=1, size =10, face = "bold", colour = "black")) +
+  theme(axis.text.y = element_text(angle = 0, vjust = 0.3, hjust=1, size =8, face = "bold", colour = "black")) +
+  theme(plot.title = element_text(size = 10, face = "bold"),
+        legend.title=element_text(size=10), 
+        legend.text=element_text(size=10))
+
+## ORA
+#Gene Ontology plotting
+# Load data
+# Make a list of all unique genes
+# Set the working directory to the location of your files
+setwd("C:/Users/mqadir/Box/Lab 2301/1. R_Coding Scripts/Sex Biology Study/Data Output/scRNA/Conserved markers/DEtesting/0.by_sex/female")
+
+# Get a list of all files in the directory
+files <- list.files(pattern = "*.csv")
+
+# Initialize an empty list to store the rownames
+gene.list.F <- list()
+
+# Loop through each file and extract the rownames
+for (file in files) {
+  # Read in the file
+  df <- read.csv(file, row.names = 1)
+  
+  # Extract the rownames
+  rownames_vec <- rownames(df)
+  
+  # Get the file name without the extension
+  file_name <- gsub(".csv", "", file)
+  
+  # Add the rownames to the list with the file name as the name
+  gene.list.F[[file_name]] <- rownames_vec
+}
+
+# Take a look at the resulting list
+gene.list.F
+
+# Set the working directory to the location of your files
+setwd("C:/Users/mqadir/Box/Lab 2301/1. R_Coding Scripts/Sex Biology Study/Data Output/scRNA/Conserved markers/DEtesting/0.by_sex/male")
+
+# Get a list of all files in the directory
+files <- list.files(pattern = "*.csv")
+
+# Initialize an empty list to store the rownames
+gene.list.M <- list()
+
+# Loop through each file and extract the rownames
+for (file in files) {
+  # Read in the file
+  df <- read.csv(file, row.names = 1)
+  
+  # Extract the rownames
+  rownames_vec <- rownames(df)
+  
+  # Get the file name without the extension
+  file_name <- gsub(".csv", "", file)
+  
+  # Add the rownames to the list with the file name as the name
+  gene.list.M[[file_name]] <- rownames_vec
+}
+
+# Take a look at the resulting list
+gene.list.M
+
+# Combine lists, but first add notations _M and _F
+# Add _F to the names of all objects in the list
+names(gene.list.F) <- paste0(names(gene.list.F), "_F")
+names(gene.list.M) <- paste0(names(gene.list.M), "_M")
+combined_list <- c(gene.list.F, gene.list.M)
+names(combined_list)
+
+# Rearrange the list by indexing
+combined_list <- combined_list[c("delta_F", "delta_M", "beta+delta_F", "beta+delta_M", "beta_F", "beta_M",  "beta+alpha_F", "beta+alpha_M", "alpha_F", "alpha_M",  "gamma_F", "gamma_M", "epsilon_F", "epsilon_M", "cycling-endo_F", "cycling-endo_M",
+                                 "ductal_F", "ductal_M", "acinar_F", "acinar_M", "activated-stellate_F", "activated-stellate_M", 
+                                 "quiescent-stellate_F", "quiescent-stellate_M", 
+                                 "endothelial_F", "endothelial_M", "lymphocyte_F", "lymphocyte_M", "macrophages_F", "macrophages_M", "mast_F", "mast_M", "schwann_F", "schwann_M")]
+
+# Split dataset into M and F
+Idents(processed_rna) <- "diabetes_status"
+processed_rna <- subset(processed_rna, idents = c("ND"))
+
+Idents(processed_rna) <- "Sex"
+processed_rna_M <- subset(processed_rna, idents = c("M"))
+processed_rna_F <- subset(processed_rna, idents = c("F"))
+
+# Compare
+ck <- compareCluster(geneCluster = combined_list, 
+                     fun = enrichGO, 
+                     #universe = rownames(combined_processed_rna@assays[["RNA"]]@counts), 
+                     keyType = "SYMBOL", #keytypes(org.Hs.eg.db)
+                     OrgDb = org.Hs.eg.db,
+                     ont = c("ALL"), 
+                     pAdjustMethod = "BH", 
+                     pvalueCutoff = 0.05, 
+                     qvalueCutoff = 0.1, #if not set default is at 0.05
+                     readable = TRUE)
+ck <- setReadable(ck, OrgDb = org.Hs.eg.db, keyType="SYMBOL")
+head(ck) 
+cluster_summary <- data.frame(ck)
+ck <- ck[ck@compareClusterResult[["qvalue"]] < 0.1, asis=T]
+dotplot(ck, showCategory = 3)
+dotplot(ck, showCategory = 1)
+ck.save <- ck@compareClusterResult
+write.csv(ck.save, file = r"(C:\Users\mqadir\Box\Lab 2301\1. R_Coding Scripts\Sex Biology Study\Data Output\scRNA\Conserved markers\ORA\ck.all.save.csv)")
+write.csv(ck.save, file = r"(C:\Users\mqadir\Documents\ck.all.save.csv)")
+
+dotplot(ck, showCategory = c("synapse organization", "gamma-aminobutyric acid signaling pathway",
+                             "insulin secretion", "cilium assembly", "peptide hormone secretion", 
+                             "cellular response to glucose starvation", "neurotransmitter secretion", "amide transport",
+                             "neuropeptide signaling pathway", "protein secretion", "glucagon secretion",
+                             "glucocorticoid secretion", "growth hormone secretion", "positive regulation of feeding behavior",
+                             "nuclear division", "mitotic cell cycle phase transition", "organelle fission",
+                             "epithelial cell proliferation", "digestive tract development", "water homeostasis", "organic anion transport", "SMAD protein signal transduction",
+                             "digestion", "morphogenesis of a branching structure", "primary alcohol metabolic process",
+                             "extracellular matrix organization", "collagen fibril organization",
+                             "muscle contraction", "muscle cell differentiation", "regulation of systemic arterial blood pressure by hormone",
+                             "regulation of angiogenesis", "blood vessel endothelial cell migration",
+                             "T cell activation", "lymphocyte mediated immunity", "T cell selection",
+                             "myeloid leukocyte activation", "antigen processing and presentation", "cell chemotaxis",
+                             "immune response-regulating cell surface receptor signaling pathway", "mast cell activation", "activation of immune response",
+                             "central nervous system myelination", "ensheathment of neurons", "axon development"), font.size=5)
+
+cnetplot(ck)
+
+beta.alpha.delta <- list(
+  delta_genes=as.character(delta_genes),
+  beta_genes=as.character(beta_genes),
+  alpha_genes=as.character(alpha_genes)
+)
+
+
+# Compare
+ck.bad <- compareCluster(geneCluster = beta.alpha.delta, 
+                         fun = enrichGO, 
+                         universe = rownames(processed_rna@assays[["RNA"]]@counts), 
+                         keyType = "SYMBOL", #keytypes(org.Hs.eg.db)
+                         OrgDb = org.Hs.eg.db, 
+                         ont = c("ALL"), 
+                         pAdjustMethod = "BH", 
+                         pvalueCutoff = 1, 
+                         qvalueCutoff = 0.1, #if not set default is at 0.05
+                         readable = TRUE)
+ck.bad <- setReadable(ck.bad, OrgDb = org.Hs.eg.db, keyType="SYMBOL")
+cnetplot(ck.bad,
+         showCategory = c("gamma-aminobutyric acid signaling pathway", "hormone secretion",
+                          "peptide transport", "peptide hormone secretion", "calcium-ion regulated exocytosis",
+                          "neurotransmitter secretion", "Golgi to endosome transport", "potassium channel complex"),
+         foldChange = NULL,
+         layout = "kk",
+         colorEdge = TRUE,
+         circular = FALSE,
+         node_label = "category",
+         cex_category = 2,
+         cex_gene = 0.5,
+         node_label_size = NULL,
+         cex_label_category = 1,
+         cex_label_gene = 1) + scale_fill_manual(values = c("chartreuse3", "dodgerblue3", "lightseagreen"))
+
+options(ggrepel.max.overlaps = Inf)
+cnetplot(ck,
+         showCategory = c("synapse organization", "gamma-aminobutyric acid signaling pathway",
+                          "insulin secretion", "cilium assembly", "peptide hormone secretion", 
+                          "cellular response to glucose starvation", "neurotransmitter secretion", "amide transport",
+                          "neuropeptide signaling pathway", "protein secretion", "glucagon secretion",
+                          "glucocorticoid secretion", "growth hormone secretion", "positive regulation of feeding behavior",
+                          "nuclear division", "mitotic cell cycle phase transition", "organelle fission",
+                          "epithelial cell proliferation", "digestive tract development", "water homeostasis", "organic anion transport", "SMAD protein signal transduction",
+                          "digestion", "morphogenesis of a branching structure", "primary alcohol metabolic process",
+                          "extracellular matrix organization", "collagen fibril organization",
+                          "muscle contraction", "muscle cell differentiation", "regulation of systemic arterial blood pressure by hormone",
+                          "regulation of angiogenesis", "blood vessel endothelial cell migration",
+                          "T cell activation", "lymphocyte mediated immunity", "T cell selection",
+                          "myeloid leukocyte activation", "antigen processing and presentation", "cell chemotaxis",
+                          "immune response-regulating cell surface receptor signaling pathway", "mast cell activation", "activation of immune response",
+                          "central nervous system myelination", "ensheathment of neurons", "axon development"),
+         foldChange = NULL,
+         layout = "kk",
+         colorEdge = TRUE,
+         circular = FALSE,
+         node_label = "category",
+         cex_category = 10,
+         cex_gene = 0.5,
+         node_label_size = NULL,
+         cex_label_category = 1,
+         cex_label_gene = 1) + scale_fill_manual(values = c("chartreuse3", #"delta" = 
+                                                            "dodgerblue3", #"beta" = ,
+                                                            "turquoise2", #"beta+alpha" =
+                                                            "lightseagreen", #"alpha"= 
+                                                            "springgreen4", #"gamma" =
+                                                            "khaki2", #"epsilon" = 
+                                                            "darkseagreen2", #"cycling-endo" = 
+                                                            "darkorange2", #"ductal" =
+                                                            "salmon3", #"acinar" = 
+                                                            "orange", #"activated-stellate" = 
+                                                            "salmon", #"quiescent-stellate" = 
+                                                            "red", #"endothelial" = 
+                                                            "orchid1", #"lymphocyte" = 
+                                                            "magenta3", #"macrophages" = 
+                                                            "red4", #"mast" = 
+                                                            "grey30"#"schwann" = 
+         ))
+
+eg <- bitr(as.character(alpha_genes), fromType="SYMBOL", toType="ENTREZID", OrgDb="org.Hs.eg.db")
+edox <- enrichDGN(as.character(eg$ENTREZID), readable = TRUE)
+edox <- setReadable(edox, OrgDb = org.Hs.eg.db, keyType="SYMBOL")
+edox <- pairwise_termsim(edox)
+emapplot(ck)
+treeplot(edox)
+mutate(edox, qscore = -log(p.adjust, base=10)) %>% 
+  barplot(x="qscore")
 
 ############################ STAGE  ############################
 ############################  12b   ############################
