@@ -9,7 +9,7 @@ This repository contains the analysis scripts and data associated with the study
 - [Data Access](#data-access)
   - [Downloading Data Files](#downloading-data-files)
   - [Data Structure](#data-structure)
-- [Analysis and Visualization Tools](#analysis-and-visualization-tools)
+- [Analysis Tools](#analysis-tools)
 - [Setting Up the Environment](#setting-up-the-environment)
 - [Computing Environment](#computing-environment)
 - [Contributors](#contributors)
