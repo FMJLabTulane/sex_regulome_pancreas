@@ -87,7 +87,7 @@ Install these packages using `install.packages("package_name")`.
 
 ## Computing Environment
 
-Some analyses, particularly those involving large datasets, may require high-performance computing resources. Ensure that your system has sufficient memory and processing power to handle the computational demands.
+Some analyses, particularly those involving large datasets, may require high-performance computing resources. Ensure that your system has sufficient memory and processing power to handle computational demand.
 
 ## Contributors
 
