@@ -31,23 +31,23 @@ The data is organized into the following categories:
 
 #### plotting_rubric
 
-- **plotting rubric for scRNAseq figures
+- plotting rubric for scRNAseq figures
 
 #### plotting_rubric_ATAC
 
-- **plotting rubric for snATACseq figures
+- plotting rubric for snATACseq figures
 
 #### scRNAseq_analysis
 
-- **Analysis rubric for scRNASeq
+- Analysis rubric for scRNASeq
 
 #### snATAC_analysis_cellranger
 
-- **Analysis rubric for snATACseq
+- Analysis rubric for snATACseq
 
 #### snATACanalysis_macs2
 
-- **Analysis rubric for snATACseq MACS2 pipeline
+- Analysis rubric for snATACseq MACS2 pipeline
   
 ## Analysis Tools
 
