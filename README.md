@@ -99,7 +99,7 @@ Some analyses, particularly those involving large datasets, may require high-per
 For questions or further information, please contact:
 
 - **Franck Mauvais-Jarvis**
-- **Email:** fmauvais@tulane.edu
+- **Email:** fmauvais[at]tulane.edu
 
 ---
 
